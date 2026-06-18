@@ -1,46 +1,37 @@
-import { Component } from '@theme/component';
-import { debounce, fetchConfig } from '@theme/utilities';
-import { cartPerformance } from '@theme/performance';
+import { CartEvents } from '@theme/cart-events';
 
-/**
- * A custom element that displays a cart note.
- */
-class CartNote extends Component {
-  /** @type {AbortController | null} */
-  #activeFetch = null;
+class CartNote extends HTMLElement {
+  #controller = new AbortController();
 
-  /**
-   * Handles updates to the cart note.
-   * @param {InputEvent} event - The input event in our text-area.
-   */
-  updateCartNote = debounce(async (event) => {
-    if (!(event.target instanceof HTMLTextAreaElement)) return;
+  connectedCallback() {
+    const { signal } = this.#controller;
+    this.querySelector('textarea')?.addEventListener('change', this.#onNoteChange, { signal });
+  }
 
+  disconnectedCallback() {
+    this.#controller.abort();
+  }
+
+  #onNoteChange = async (event) => {
     const note = event.target.value;
-    if (this.#activeFetch) {
-      this.#activeFetch.abort();
-    }
-
-    const abortController = new AbortController();
-    this.#activeFetch = abortController;
-
     try {
-      const config = fetchConfig('json', {
+      const response = await fetch('/cart/update.js', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ note }),
       });
-
-      await fetch(Theme.routes.cart_update_url, {
-        ...config,
-        signal: abortController.signal,
-      });
+      const cart = await response.json();
+      document.dispatchEvent(
+        new CustomEvent(CartEvents.change, {
+          detail: { cart },
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
     } catch (error) {
-    } finally {
-      this.#activeFetch = null;
-      cartPerformance.measureFromEvent('note-update:user-action', event);
+      console.error('Failed to update cart note:', error);
     }
-  }, 200);
+  };
 }
 
-if (!customElements.get('cart-note')) {
-  customElements.define('cart-note', CartNote);
-}
+customElements.define('cart-note', CartNote);

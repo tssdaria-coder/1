@@ -54,54 +54,72 @@ class AccordionCustom extends HTMLElement {
   }
 
   /**
-   * Handles the click event.
-   * @param {Event} event - The event.
+   * @param {MouseEvent} event
    */
   handleClick = (event) => {
-    const isMobile = isMobileBreakpoint();
-    const isDesktop = !isMobile;
+    event.preventDefault();
 
-    // Stop default behaviour from the browser
-    if ((isMobile && this.#disableOnMobile) || (isDesktop && this.#disableOnDesktop)) {
-      event.preventDefault();
-      return;
+    // If we're already animating, don't do anything
+    if (this.details.dataset.transitioning) return;
+
+    if (this.details.open) {
+      this.#close();
+    } else {
+      this.#open();
     }
   };
 
   /**
-   * Handles the media query change event.
+   * Handle keydown events
+   * @param {KeyboardEvent} event
    */
+  #handleKeyDown = (event) => {
+    if (event.key === 'Escape' && this.#closeWithEscape) {
+      this.#close();
+    }
+  };
+
   #handleMediaQueryChange = () => {
     this.#setDefaultOpenState();
   };
 
-  /**
-   * Sets the default open state of the accordion based on the `open-by-default-on-mobile` and `open-by-default-on-desktop` attributes.
-   */
   #setDefaultOpenState() {
-    const isMobile = isMobileBreakpoint();
-
-    this.details.open =
-      (isMobile && this.hasAttribute('open-by-default-on-mobile')) ||
-      (!isMobile && this.hasAttribute('open-by-default-on-desktop'));
-  }
-
-  /**
-   * Handles keydown events for the accordion
-   *
-   * @param {KeyboardEvent} event - The keyboard event.
-   */
-  #handleKeyDown(event) {
-    // Close the accordion when used as a menu
-    if (event.key === 'Escape' && this.#closeWithEscape) {
-      event.preventDefault();
-
-      this.details.open = false;
-      this.summary.focus();
+    if (isMobileBreakpoint() && this.#disableOnMobile) {
+      this.details.open = true;
+    } else if (!isMobileBreakpoint() && this.#disableOnDesktop) {
+      this.details.open = true;
     }
   }
+
+  #open() {
+    if (this.details.open) return;
+    this.details.open = true;
+    const content = this.details.querySelector('.js-accordion-content');
+    if (!content) return;
+    content.animate([{ height: '0px' }, { height: `${content.scrollHeight}px` }], {
+      duration: 200,
+      easing: 'ease-in-out',
+    });
+  }
+
+  #close() {
+    if (!this.details.open) return;
+
+    const content = this.details.querySelector('.js-accordion-content');
+    if (!content) return;
+
+    const animation = content.animate([{ height: `${content.scrollHeight}px` }, { height: '0px' }], {
+      duration: 200,
+      easing: 'ease-in-out',
+    });
+
+    this.details.dataset.transitioning = 'true';
+
+    animation.addEventListener('finish', () => {
+      this.details.open = false;
+      delete this.details.dataset.transitioning;
+    });
+  }
 }
 
-if (!customElements.get('accordion-custom')) {
-  customElements.define('accordion-custom', AccordionCustom);
-}
+customElements.define('accordion-custom', AccordionCustom);

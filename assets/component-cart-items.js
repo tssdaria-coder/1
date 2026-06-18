@@ -1,334 +1,166 @@
-import { Component } from '@theme/component';
-import {
-  fetchConfig,
-  debounce,
-  onAnimationEnd,
-  prefersReducedMotion,
-  resetShimmer,
-  startViewTransition,
-} from '@theme/utilities';
-import { morphSection, sectionRenderer } from '@theme/section-renderer';
-import {
-  ThemeEvents,
-  CartUpdateEvent,
-  QuantitySelectorUpdateEvent,
-  CartAddEvent,
-  DiscountUpdateEvent,
-} from '@theme/events';
-import { cartPerformance } from '@theme/performance';
-
-/** @typedef {import('./utilities').TextComponent} TextComponent */
+import { CartEvents } from '@theme/cart-events';
 
 /**
- * A custom element that displays a cart items component.
+ * Cart items component
  *
- * @typedef {object} Refs
- * @property {HTMLElement[]} quantitySelectors - The quantity selector elements.
- * @property {HTMLTableRowElement[]} cartItemRows - The cart item rows.
- * @property {TextComponent} cartTotal - The cart total.
- *
- * @extends {Component<Refs>}
+ * Handles updating cart item quantities and removing items
  */
-class CartItemsComponent extends Component {
-  #debouncedOnChange = debounce(this.#onQuantityChange, 300).bind(this);
+class CartItems extends HTMLElement {
+  #controller = new AbortController();
 
   connectedCallback() {
-    super.connectedCallback();
+    const { signal } = this.#controller;
 
-    document.addEventListener(ThemeEvents.cartUpdate, this.#handleCartUpdate);
-    document.addEventListener(ThemeEvents.discountUpdate, this.handleDiscountUpdate);
-    document.addEventListener(ThemeEvents.quantitySelectorUpdate, this.#debouncedOnChange);
+    this.addEventListener('click', this.#onButtonClick, { signal });
   }
 
   disconnectedCallback() {
-    super.disconnectedCallback();
-
-    document.removeEventListener(ThemeEvents.cartUpdate, this.#handleCartUpdate);
-    document.removeEventListener(ThemeEvents.discountUpdate, this.handleDiscountUpdate);
-    document.removeEventListener(ThemeEvents.quantitySelectorUpdate, this.#debouncedOnChange);
+    this.#controller.abort();
   }
 
   /**
-   * Handles QuantitySelectorUpdateEvent change event.
-   * @param {QuantitySelectorUpdateEvent} event - The event.
+   * @param {MouseEvent} event
    */
-  #onQuantityChange(event) {
-    if (!(event.target instanceof Node) || !this.contains(event.target)) return;
+  #onButtonClick = (event) => {
+    const button = event.target.closest('[data-cart-action]');
+    if (!button) return;
 
-    const { quantity, cartLine: line } = event.detail;
+    const action = button.dataset.cartAction;
+    const key = button.dataset.lineKey;
+    const quantity = parseInt(button.dataset.quantity ?? '0');
 
-    // Cart items require a line number
-    if (!line) return;
+    if (!key) return;
 
-    if (quantity === 0) {
-      return this.onLineItemRemove(line);
+    switch (action) {
+      case 'increase':
+        this.#updateQuantity(key, quantity + 1);
+        break;
+      case 'decrease':
+        this.#updateQuantity(key, Math.max(0, quantity - 1));
+        break;
+      case 'remove':
+        this.#updateQuantity(key, 0);
+        break;
     }
-
-    this.updateQuantity({
-      line,
-      quantity,
-      action: 'change',
-    });
-    const lineItemRow = this.refs.cartItemRows[line - 1];
-
-    if (!lineItemRow) return;
-
-    const textComponent = /** @type {TextComponent | undefined} */ (lineItemRow.querySelector('text-component'));
-    textComponent?.shimmer();
-  }
+  };
 
   /**
-   * Handles the line item removal.
-   * @param {number} line - The line item index.
+   * @param {string} key
+   * @param {number} quantity
    */
-  onLineItemRemove(line) {
-    this.updateQuantity({
-      line,
-      quantity: 0,
-      action: 'clear',
-    });
+  async #updateQuantity(key, quantity) {
+    const sectionIds = this.dataset.sections?.split(',') ?? [];
 
-    const cartItemRowToRemove = this.refs.cartItemRows[line - 1];
-
-    if (!cartItemRowToRemove) return;
-
-    const rowsToRemove = [
-      cartItemRowToRemove,
-      // Get all nested lines of the row to remove
-      ...this.refs.cartItemRows.filter((row) => row.dataset.parentKey === cartItemRowToRemove.dataset.key),
-    ];
-
-    // If the cart item row is the last row, optimistically trigger the cart empty state
-    const isEmptyCart = rowsToRemove.length == this.refs.cartItemRows.length;
-
-    const template = document.getElementById('empty-cart-template');
-    if (isEmptyCart && template instanceof HTMLTemplateElement) {
-      const clone = document.importNode(template.content, true);
-
-      startViewTransition(() => {
-        this.replaceChildren(clone);
-      }, [this.isDrawer ? 'empty-cart-drawer' : 'empty-cart-page']);
-
-      return;
-    }
-
-    // Add class to the row to trigger the animation
-    rowsToRemove.forEach((row) => {
-      const remove = () => row.remove();
-
-      if (prefersReducedMotion()) return remove();
-
-      row.style.setProperty('--row-height', `${row.clientHeight}px`);
-      row.classList.add('removing');
-
-      // Remove the row after the animation ends
-      onAnimationEnd(row, remove);
-    });
-  }
-
-  /**
-   * Updates the quantity.
-   * @param {Object} config - The config.
-   * @param {number} config.line - The line.
-   * @param {number} config.quantity - The quantity.
-   * @param {string} config.action - The action.
-   */
-  updateQuantity(config) {
-    const cartPerformaceUpdateMarker = cartPerformance.createStartingMarker(`${config.action}:user-action`);
-
-    this.#disableCartItems();
-
-    const { line, quantity } = config;
-    const { cartTotal } = this.refs;
-
-    const cartItemsComponents = document.querySelectorAll('cart-items-component');
-    const sectionsToUpdate = new Set([this.sectionId]);
-    cartItemsComponents.forEach((item) => {
-      if (item instanceof HTMLElement && item.dataset.sectionId) {
-        sectionsToUpdate.add(item.dataset.sectionId);
-      }
-    });
-
-    const body = JSON.stringify({
-      line: line,
-      quantity: quantity,
-      sections: Array.from(sectionsToUpdate).join(','),
-      sections_url: window.location.pathname,
-    });
-
-    cartTotal?.shimmer();
-
-    fetch(`${Theme.routes.cart_change_url}`, fetchConfig('json', { body }))
-      .then((response) => {
-        return response.text();
-      })
-      .then((responseText) => {
-        const parsedResponseText = JSON.parse(responseText);
-
-        resetShimmer(this);
-
-        if (parsedResponseText.errors) {
-          this.#handleCartError(line, parsedResponseText);
-          return;
-        }
-
-        const newSectionHTML = new DOMParser().parseFromString(
-          parsedResponseText.sections[this.sectionId],
-          'text/html'
-        );
-
-        // Grab the new cart item count from a hidden element
-        const newCartHiddenItemCount = newSectionHTML.querySelector('[ref="cartItemCount"]')?.textContent;
-        const newCartItemCount = newCartHiddenItemCount ? parseInt(newCartHiddenItemCount, 10) : 0;
-
-        // Update data-cart-quantity for all matching variants
-        this.#updateQuantitySelectors(parsedResponseText);
-
-        this.dispatchEvent(
-          new CartUpdateEvent(parsedResponseText, this.sectionId, {
-            itemCount: newCartItemCount,
-            source: 'cart-items-component',
-            sections: parsedResponseText.sections,
-          })
-        );
-
-        morphSection(this.sectionId, parsedResponseText.sections[this.sectionId], { mode: this.isDrawer ? 'hydration' : 'full' });
-
-        this.#updateCartQuantitySelectorButtonStates();
-      })
-      .catch((error) => {
-        console.error(error);
-      })
-      .finally(() => {
-        this.#enableCartItems();
-        cartPerformance.measureFromMarker(cartPerformaceUpdateMarker);
+    try {
+      const response = await fetch('/cart/change.js', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: key,
+          quantity,
+          sections: sectionIds,
+        }),
       });
-  }
 
-  /**
-   * Handles the discount update.
-   * @param {DiscountUpdateEvent} event - The event.
-   */
-  handleDiscountUpdate = (event) => {
-    this.#handleCartUpdate(event);
-  };
-
-  /**
-   * Handles the cart error.
-   * @param {number} line - The line.
-   * @param {Object} parsedResponseText - The parsed response text.
-   * @param {string} parsedResponseText.errors - The errors.
-   */
-  #handleCartError = (line, parsedResponseText) => {
-    const quantitySelector = this.refs.quantitySelectors[line - 1];
-    const quantityInput = quantitySelector?.querySelector('input');
-
-    if (!quantityInput) throw new Error('Quantity input not found');
-
-    quantityInput.value = quantityInput.defaultValue;
-
-    const cartItemError = this.refs[`cartItemError-${line}`];
-    const cartItemErrorContainer = this.refs[`cartItemErrorContainer-${line}`];
-
-    if (!(cartItemError instanceof HTMLElement)) throw new Error('Cart item error not found');
-    if (!(cartItemErrorContainer instanceof HTMLElement)) throw new Error('Cart item error container not found');
-
-    cartItemError.textContent = parsedResponseText.errors;
-    cartItemErrorContainer.classList.remove('hidden');
-  };
-
-  /**
-   * Handles the cart update.
-   *
-   * @param {DiscountUpdateEvent | CartUpdateEvent | CartAddEvent} event
-   */
-  #handleCartUpdate = (event) => {
-    if (event instanceof DiscountUpdateEvent) {
-      sectionRenderer.renderSection(this.sectionId, { cache: false });
-      return;
-    }
-    if (event.target === this) return;
-
-    const cartItemsHtml = event.detail.data.sections?.[this.sectionId];
-    if (cartItemsHtml) {
-      morphSection(this.sectionId, cartItemsHtml);
-
-      // Update button states for all cart quantity selectors after morph
-      this.#updateCartQuantitySelectorButtonStates();
-    } else {
-      sectionRenderer.renderSection(this.sectionId, { cache: false });
-    }
-  };
-
-  /**
-   * Disables the cart items.
-   */
-  #disableCartItems() {
-    this.classList.add('cart-items-disabled');
-  }
-
-  /**
-   * Enables the cart items.
-   */
-  #enableCartItems() {
-    this.classList.remove('cart-items-disabled');
-  }
-
-  /**
-   * Updates quantity selectors for all matching variants in the cart.
-   * @param {Object} updatedCart - The updated cart object.
-   * @param {Array<{variant_id: number, quantity: number}>} [updatedCart.items] - The cart items.
-   */
-  #updateQuantitySelectors(updatedCart) {
-    if (!updatedCart.items) return;
-
-    for (const item of updatedCart.items) {
-      const variantId = item.variant_id.toString();
-      const selectors = document.querySelectorAll(`quantity-selector-component[data-variant-id="${variantId}"]`);
-
-      for (const selector of selectors) {
-        const input = selector.querySelector('input[data-cart-quantity]');
-        if (!input) continue;
-
-        input.setAttribute('data-cart-quantity', item.quantity.toString());
-
-        // Update the quantity selector's internal state
-        if ('updateCartQuantity' in selector && typeof selector.updateCartQuantity === 'function') {
-          selector.updateCartQuantity();
-        }
+      if (!response.ok) {
+        const errorText = await response.text();
+        document.dispatchEvent(
+          new CustomEvent(CartEvents.error, {
+            detail: { error: errorText },
+            bubbles: true,
+            cancelable: true,
+          }),
+        );
+        return;
       }
+
+      const cart = await response.json();
+
+      document.dispatchEvent(
+        new CustomEvent(CartEvents.change, {
+          detail: { cart, sections: cart.sections },
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+    } catch (error) {
+      document.dispatchEvent(
+        new CustomEvent(CartEvents.error, {
+          detail: { error: error.message },
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
     }
-  }
-
-  /**
-   * Updates button states for all cart quantity selector components.
-   */
-  #updateCartQuantitySelectorButtonStates() {
-    for (const selector of document.querySelectorAll('cart-quantity-selector-component')) {
-      /** @type {any} */ (selector).updateButtonStates?.();
-    }
-  }
-
-  /**
-   * Gets the section id.
-   * @returns {string} The section id.
-   */
-  get sectionId() {
-    const { sectionId } = this.dataset;
-
-    if (!sectionId) throw new Error('Section id missing');
-
-    return sectionId;
-  }
-
-  /**
-   * @returns {boolean} Whether the component is a drawer.
-   */
-  get isDrawer() {
-    return this.dataset.drawer !== undefined;
   }
 }
 
-if (!customElements.get('cart-items-component')) {
-  customElements.define('cart-items-component', CartItemsComponent);
+customElements.define('cart-items', CartItems);
+
+/**
+ * Cart total price component
+ * This component listens for cart changes and updates the total price
+ */
+class CartTotalPrice extends HTMLElement {
+  #controller = new AbortController();
+
+  connectedCallback() {
+    document.addEventListener(CartEvents.change, this.#onCartChange, {
+      signal: this.#controller.signal,
+    });
+  }
+
+  disconnectedCallback() {
+    this.#controller.abort();
+  }
+
+  /** @param {CustomEvent} event */
+  #onCartChange = (event) => {
+    if (!event.detail) return;
+    const { cart } = event.detail;
+    this.#updateTotalPrice(cart.total_price);
+  };
+
+  /** @param {number} totalPrice */
+  #updateTotalPrice(totalPrice) {
+    const priceEl = this.querySelector('[data-total-price]');
+    if (!priceEl) return;
+
+    const currency = priceEl.dataset.currency ?? 'USD';
+    const locale = priceEl.dataset.locale ?? 'en-US';
+
+    priceEl.textContent = new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency,
+    }).format(totalPrice / 100);
+  }
 }
+
+customElements.define('cart-total-price', CartTotalPrice);
+
+/**
+ * Empty cart component
+ * This component listens for cart changes and shows/hides itself based on cart item count
+ */
+class EmptyCart extends HTMLElement {
+  #controller = new AbortController();
+
+  connectedCallback() {
+    document.addEventListener(CartEvents.change, this.#onCartChange, {
+      signal: this.#controller.signal,
+    });
+  }
+
+  disconnectedCallback() {
+    this.#controller.abort();
+  }
+
+  /** @param {CustomEvent} event */
+  #onCartChange = (event) => {
+    if (!event.detail) return;
+    const { cart } = event.detail;
+    this.hidden = cart.item_count > 0;
+  };
+}
+
+customElements.define('empty-cart', EmptyCart);

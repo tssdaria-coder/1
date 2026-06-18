@@ -1,38 +1,42 @@
-import { QuantitySelectorComponent } from '@theme/component-quantity-selector';
+import { CartEvents } from '@theme/cart-events';
+import { QuantitySelector } from '@theme/component-quantity-selector';
 
-/**
- * A custom element that allows the user to select a quantity in the cart.
- * Extends QuantitySelectorComponent but uses absolute max limits instead of effective max.
- * Semantics: "What should the total quantity BE in the cart" vs "How many to ADD to cart"
- *
- * @extends {QuantitySelectorComponent}
- */
-class CartQuantitySelectorComponent extends QuantitySelectorComponent {
-  /**
-   * Gets the effective maximum value for cart quantity selector
-   * Cart page: uses absolute max (how much can be in cart total)
-   * @returns {number | null} The effective max, or null if no max
-   */
-  getEffectiveMax() {
-    const { max } = this.getCurrentValues();
-    return max; // Cart uses absolute max, not max minus cart quantity
-  }
+class CartQuantitySelector extends QuantitySelector {
+  async updateQuantity(key, quantity) {
+    const sectionIds = this.dataset.sections?.split(',') ?? [];
 
-  /**
-   * Updates button states based on current value and limits
-   * Cart buttons are always managed client-side, never server-disabled
-   */
-  updateButtonStates() {
-    const { minusButton, plusButton } = this.refs;
-    const { min, value } = this.getCurrentValues();
-    const effectiveMax = this.getEffectiveMax();
+    const response = await fetch('/cart/change.js', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: key,
+        quantity,
+        sections: sectionIds,
+      }),
+    });
 
-    // Cart buttons are always dynamically managed
-    minusButton.disabled = value <= min;
-    plusButton.disabled = effectiveMax !== null && value >= effectiveMax;
+    if (!response.ok) {
+      const errorText = await response.text();
+      document.dispatchEvent(
+        new CustomEvent(CartEvents.error, {
+          detail: { error: errorText },
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+      return;
+    }
+
+    const cart = await response.json();
+
+    document.dispatchEvent(
+      new CustomEvent(CartEvents.change, {
+        detail: { cart, sections: cart.sections },
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
   }
 }
 
-if (!customElements.get('cart-quantity-selector-component')) {
-  customElements.define('cart-quantity-selector-component', CartQuantitySelectorComponent);
-}
+customElements.define('cart-quantity-selector', CartQuantitySelector);
