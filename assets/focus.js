@@ -1,104 +1,70 @@
-// Store references to our event handlers so we can remove them.
-/** @type {Record<string, (event: Event) => void>} */
-const trapFocusHandlers = {};
-
 /**
- * Get all focusable elements within a container.
- * @param {HTMLElement} container - The container to get focusable elements from.
- * @returns {HTMLElement[]} An array of focusable elements.
+ * Traps focus and scroll inside an element.
+ *
+ * @param {HTMLElement} element - The element to trap focus inside.
+ * @returns {{ activate: () => void, deactivate: () => void }}
  */
-function getFocusableElements(container) {
-  return Array.from(
-    container.querySelectorAll(
-      "summary, a[href], button:enabled, [tabindex]:not([tabindex^='-']), [draggable], area, input:not([type=hidden]):enabled, select:enabled, textarea:enabled, object, iframe"
-    )
-  );
-}
+export function trapFocusAndScrollInside(element) {
+  let previouslyFocusedElement = null;
+  let isActive = false;
 
-/**
- * Trap focus within the given container.
- * @param {HTMLElement} container - The container to trap focus within.
- */
-export function trapFocus(container) {
-  // Clean up any previously set traps.
-  removeTrapFocus();
+  const focusableSelectors = [
+    'a[href]',
+    'button:not([disabled])',
+    'input:not([disabled])',
+    'select:not([disabled])',
+    'textarea:not([disabled])',
+    '[tabindex]:not([tabindex="-1"])',
+  ].join(',');
 
-  // Gather focusable elements.
-  const focusable = getFocusableElements(container);
-  if (!focusable.length) {
-    // If nothing is focusable, just abort—no need to trap.
-    return;
+  function getFocusableElements() {
+    return Array.from(element.querySelectorAll(focusableSelectors));
   }
 
-  const first = focusable[0];
-  const last = focusable[focusable.length - 1];
+  function handleKeydown(event) {
+    if (!isActive) return;
 
-  // Keydown handler for cycling focus with Tab and Shift+Tab
-  /** @type {(event: KeyboardEvent) => void} */
-  trapFocusHandlers.keydown = (event) => {
     if (event.key !== 'Tab') return;
 
-    const activeEl = document.activeElement;
+    const focusableElements = getFocusableElements();
+    if (focusableElements.length === 0) return;
 
-    // If on the last focusable and tabbing forward, go to first
-    if (!event.shiftKey && activeEl === last) {
-      event.preventDefault();
-      first?.focus();
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+
+    if (event.shiftKey) {
+      if (document.activeElement === firstElement) {
+        event.preventDefault();
+        lastElement.focus();
+      }
+    } else {
+      if (document.activeElement === lastElement) {
+        event.preventDefault();
+        firstElement.focus();
+      }
     }
-    // If on the first (or the container) and shift-tabbing, go to last
-    else if (event.shiftKey && (activeEl === first || activeEl === container)) {
-      event.preventDefault();
-      last?.focus();
-    }
-  };
-
-  // Focusin (capturing) handler to forcibly keep focus in the container
-  /** @type {(event: FocusEvent) => void} */
-  trapFocusHandlers.focusin = (event) => {
-    // If the newly focused element isn't inside the container, redirect focus back.
-    if (event.target instanceof Node && !container.contains(event.target)) {
-      event.stopPropagation();
-      // E.g., refocus the first focusable element:
-      first?.focus();
-    }
-  };
-
-  // Attach the handlers
-  document.addEventListener('keydown', trapFocusHandlers.keydown, true);
-  // Use capture phase for focusin so we can catch it before it lands outside
-  document.addEventListener('focusin', trapFocusHandlers.focusin, true);
-
-  // Finally, put focus where you want it.
-  container.focus();
-}
-
-/**
- * Remove focus trap and optionally refocus another element.
- */
-export function removeTrapFocus() {
-  trapFocusHandlers.keydown && document.removeEventListener('keydown', trapFocusHandlers.keydown, true);
-  trapFocusHandlers.focusin && document.removeEventListener('focusin', trapFocusHandlers.focusin, true);
-}
-
-/**
- * Cycle focus to the next or previous link
- *
- * @param {HTMLElement[]} items
- * @param {number} increment
- */
-export function cycleFocus(items, increment) {
-  const currentIndex = items.findIndex((item) => item.matches(':focus'));
-  let targetIndex = currentIndex + increment;
-
-  if (targetIndex >= items.length) {
-    targetIndex = 0;
-  } else if (targetIndex < 0) {
-    targetIndex = items.length - 1;
   }
 
-  const targetItem = items[targetIndex];
+  return {
+    activate() {
+      isActive = true;
+      previouslyFocusedElement = document.activeElement;
+      document.addEventListener('keydown', handleKeydown);
+      document.body.style.overflow = 'hidden';
 
-  if (!targetItem) return;
+      const focusableElements = getFocusableElements();
+      if (focusableElements.length > 0) {
+        focusableElements[0].focus();
+      }
+    },
+    deactivate() {
+      isActive = false;
+      document.removeEventListener('keydown', handleKeydown);
+      document.body.style.overflow = '';
 
-  targetItem.focus();
+      if (previouslyFocusedElement instanceof HTMLElement) {
+        previouslyFocusedElement.focus();
+      }
+    },
+  };
 }

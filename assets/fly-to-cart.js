@@ -1,80 +1,55 @@
-import { yieldToMainThread } from '@theme/utilities';
-import { Component } from '@theme/component';
+import { CartEvents } from '@theme/cart-events';
 
-/**
- * FlyToCart custom element for animating product images to cart
- * This component creates a visual effect of a product "flying" to the cart when added
- */
-class FlyToCart extends Component {
-  /** @type {Element} */
-  source;
-
-  /** @type {boolean} */
-  useSourceSize = false;
-
-  /** @type {Element} */
-  destination;
+class FlyToCart extends HTMLElement {
+  #controller = new AbortController();
 
   connectedCallback() {
-    super.connectedCallback();
-    const intersectionObserver = new IntersectionObserver((entries) => {
-      /** @type {DOMRectReadOnly | null} */
-      let sourceRect = null;
-      /** @type {DOMRectReadOnly | null} */
-      let destinationRect = null;
-
-      entries.forEach((entry) => {
-        if (entry.target === this.source) {
-          sourceRect = entry.boundingClientRect;
-        } else if (entry.target === this.destination) {
-          destinationRect = entry.boundingClientRect;
-        }
-      });
-
-      if (sourceRect && destinationRect) {
-        this.#animate(sourceRect, destinationRect);
-      }
-
-      intersectionObserver.disconnect();
+    document.addEventListener(CartEvents.flyToCart, this.#onFlyToCart, {
+      signal: this.#controller.signal,
     });
-    intersectionObserver.observe(this.source);
-    intersectionObserver.observe(this.destination);
   }
 
-  /**
-   * Animates the flying thingy along the bezier curve.
-   * @param {DOMRectReadOnly} sourceRect - The bounding client rect of the source.
-   * @param {DOMRectReadOnly} destinationRect - The bounding client rect of the destination.
-   */
-  #animate = async (sourceRect, destinationRect) => {
-    //Define bezier curve points
-    const startPoint = {
-      x: sourceRect.left + sourceRect.width / 2,
-      y: sourceRect.top + sourceRect.height / 2,
-    };
+  disconnectedCallback() {
+    this.#controller.abort();
+  }
 
-    const endPoint = {
-      x: destinationRect.left + destinationRect.width / 2,
-      y: destinationRect.top + destinationRect.height / 2,
-    };
-
-    // Position the flying thingy back to the start point
-    if (this.useSourceSize) {
-      this.style.setProperty('--width', `${sourceRect.width}px`);
-      this.style.setProperty('--height', `${sourceRect.height}px`);
-    }
-    this.style.setProperty('--start-x', `${startPoint.x}px`);
-    this.style.setProperty('--start-y', `${startPoint.y}px`);
-    this.style.setProperty('--travel-x', `${endPoint.x - startPoint.x}px`);
-    this.style.setProperty('--travel-y', `${endPoint.y - startPoint.y}px`);
-
-    await yieldToMainThread();
-
-    await Promise.allSettled(this.getAnimations().map((a) => a.finished));
-    this.remove();
+  #onFlyToCart = (event) => {
+    const { imageUrl, startRect } = event.detail;
+    this.#animate(imageUrl, startRect);
   };
+
+  /**
+   * @param {string} imageUrl
+   * @param {DOMRect} startRect
+   */
+  #animate(imageUrl, startRect) {
+    const cartIconEl = document.querySelector('[data-cart-icon]');
+    if (!cartIconEl) return;
+
+    const endRect = cartIconEl.getBoundingClientRect();
+    const img = document.createElement('img');
+    img.src = imageUrl;
+    img.className = 'fly-to-cart__image';
+    document.body.appendChild(img);
+
+    img.style.position = 'fixed';
+    img.style.width = `${startRect.width}px`;
+    img.style.height = `${startRect.height}px`;
+    img.style.top = `${startRect.top}px`;
+    img.style.left = `${startRect.left}px`;
+    img.style.zIndex = '9999';
+    img.style.transition = 'none';
+
+    requestAnimationFrame(() => {
+      img.animate(
+        [
+          { top: `${startRect.top}px`, left: `${startRect.left}px`, width: `${startRect.width}px`, height: `${startRect.height}px`, opacity: 1 },
+          { top: `${endRect.top}px`, left: `${endRect.left}px`, width: '20px', height: '20px', opacity: 0 },
+        ],
+        { duration: 800, easing: 'ease-in-out' },
+      ).addEventListener('finish', () => img.remove());
+    });
+  }
 }
 
-if (!customElements.get('fly-to-cart')) {
-  customElements.define('fly-to-cart', FlyToCart);
-}
+customElements.define('fly-to-cart', FlyToCart);
