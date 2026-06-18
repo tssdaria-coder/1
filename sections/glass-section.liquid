@@ -1,0 +1,83 @@
+{% liquid
+  assign image = section.settings.image
+  assign caption = section.settings.caption
+  assign heading = section.settings.heading
+  assign body = section.settings.body
+  assign btn_label = section.settings.button_label
+  assign btn_link = section.settings.button_link
+  assign min_height = section.settings.min_height | default: '78svh'
+  assign panel_align = section.settings.panel_alignment | default: 'center'
+%}
+
+<section
+  class="glass-section glass-section--{{ panel_align }} color-{{ section.settings.color_scheme }}"
+  style="--glass-min-height: {{ min_height }};"
+  data-section-id="{{ section.id }}"
+>
+  {% if image != blank %}
+    <div class="glass-section__bg" aria-hidden="true">
+      {{ image | image_url: width: 2400 | image_tag:
+        loading: 'lazy', sizes: '100vw',
+        widths: '600, 900, 1200, 1600, 2000, 2400',
+        class: 'glass-section__bg-img' }}
+    </div>
+  {% endif %}
+  <div class="glass-section__overlay">
+    <div class="glass-panel">
+      {% if caption != blank %}
+        <p class="glass-panel__caption">{{ caption }}</p>
+      {% endif %}
+      {% if heading != blank %}
+        <h2 class="glass-panel__heading">{{ heading }}</h2>
+      {% endif %}
+      {% if body != blank %}
+        <div class="glass-panel__body rte">{{ body }}</div>
+      {% endif %}
+      {% if btn_label != blank %}
+        <a href="{{ btn_link | default: '#' }}" class="button glass-panel__cta">
+          {{ btn_label }}
+        </a>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Liquid glass section",
+  "tag": "section",
+  "class": "glass-section-wrapper",
+  "disabled_on": { "groups": ["header"] },
+  "settings": [
+    { "type": "image_picker", "id": "image", "label": "Background image" },
+    { "type": "text", "id": "caption", "label": "Caption", "default": "Ingredients" },
+    { "type": "text", "id": "heading", "label": "Heading", "default": "Plant-forward, and proven" },
+    { "type": "richtext", "id": "body", "label": "Body",
+      "default": "<p>Cold-pressed botanical oils, mineral-rich actives, and quietly effective extracts. Every ingredient earns its place.</p>" },
+    { "type": "text", "id": "button_label", "label": "Button label" },
+    { "type": "url", "id": "button_link", "label": "Button link" },
+    {
+      "type": "select", "id": "panel_alignment", "label": "Panel alignment",
+      "options": [
+        { "value": "left", "label": "Left" },
+        { "value": "center", "label": "Centre" },
+        { "value": "right", "label": "Right" }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "select", "id": "min_height", "label": "Section height",
+      "options": [
+        { "value": "60svh", "label": "Small" },
+        { "value": "78svh", "label": "Medium" },
+        { "value": "100svh", "label": "Full screen" }
+      ],
+      "default": "78svh"
+    },
+    { "type": "color_scheme", "id": "color_scheme", "label": "Color scheme", "default": "scheme-1" }
+  ],
+  "presets": [
+    { "name": "Liquid glass section" }
+  ]
+}
+{% endschema %}
