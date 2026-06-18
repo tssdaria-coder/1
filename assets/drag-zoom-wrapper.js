@@ -362,73 +362,53 @@ export class DragZoomWrapper extends Component {
     const wrapperRect = this.getBoundingClientRect();
 
     // Calculate ACTUAL image content dimensions at current zoom
-    // The image element may fill the wrapper, but the content has its own aspect ratio
     const imageElement = this.#image;
     let naturalWidth, naturalHeight;
 
-    // Try to get natural dimensions
     if (imageElement.naturalWidth > 0 && imageElement.naturalHeight > 0) {
       naturalWidth = imageElement.naturalWidth;
       naturalHeight = imageElement.naturalHeight;
     } else {
-      // Fallback: assume square image if we can't get natural dimensions
       naturalWidth = wrapperRect.width;
       naturalHeight = wrapperRect.width;
     }
 
-    // Calculate how the image fits within the wrapper (object-fit: contain behavior)
     const imageAspectRatio = naturalWidth / naturalHeight;
     const wrapperAspectRatio = wrapperRect.width / wrapperRect.height;
 
     let actualImageWidth, actualImageHeight;
 
     if (imageAspectRatio > wrapperAspectRatio) {
-      // Image is wider - width fits exactly, height is smaller (letterboxed top/bottom)
       actualImageWidth = wrapperRect.width;
       actualImageHeight = actualImageWidth / imageAspectRatio;
     } else {
-      // Image is taller - height fits exactly, width is smaller (letterboxed left/right)
       actualImageHeight = wrapperRect.height;
       actualImageWidth = actualImageHeight * imageAspectRatio;
     }
 
-    // Apply current zoom scale
     const scaledImageWidth = actualImageWidth * this.#scale;
     const scaledImageHeight = actualImageHeight * this.#scale;
-
-    // SIMPLE APPROACH: Calculate constraints directly from image content dimensions
-    // If image content is larger than wrapper, calculate max translation directly
 
     const horizontalOverflow = Math.max(0, scaledImageWidth - wrapperRect.width);
     const verticalOverflow = Math.max(0, scaledImageHeight - wrapperRect.height);
 
-    // Max translation is half the overflow (since image starts centered)
     const maxTranslateX = horizontalOverflow / 2 / this.#scale;
     const maxTranslateY = verticalOverflow / 2 / this.#scale;
 
-    // Apply symmetric constraints (object-fit: contain behavior)
-    // Image starts centered, can move maxTranslate in each direction
     this.#translate.x = clamp(this.#translate.x, -maxTranslateX, maxTranslateX);
     this.#translate.y = clamp(this.#translate.y, -maxTranslateY, maxTranslateY);
 
-    // Apply final transforms to CSS
     this.style.setProperty('--drag-zoom-scale', this.#scale.toString());
     this.style.setProperty('--drag-zoom-translate-x', `${this.#translate.x}px`);
     this.style.setProperty('--drag-zoom-translate-y', `${this.#translate.y}px`);
   }
 
-  /**
-   * Request an animation frame to update the transform
-   */
   #requestUpdateTransform = () => {
     if (!this.#animationFrame) {
       this.#animationFrame = requestAnimationFrame(this.#updateTransform);
     }
   };
 
-  /**
-   * Cancel any pending animation frame
-   */
   #cancelAnimationFrame() {
     if (this.#animationFrame) {
       cancelAnimationFrame(this.#animationFrame);
@@ -445,18 +425,12 @@ export class DragZoomWrapper extends Component {
     this.style.setProperty('--drag-zoom-translate-y', `${this.#translate.y}px`);
   };
 
-  /**
-   * Reset zoom to default state (1.5x scale, centered position)
-   * Called when zoom is exited/closed
-   */
   #resetZoom = () => {
-    // Reset scale and translation to defaults
     this.#scale = DEFAULT_ZOOM;
     this.#startScale = DEFAULT_ZOOM;
     this.#translate.x = 0;
     this.#translate.y = 0;
 
-    // Reset gesture state to prevent interference on next zoom open
     this.#startPosition = { x: 0, y: 0 };
     this.#startTranslate = { x: 0, y: 0 };
     this.#isDragging = false;
@@ -464,7 +438,6 @@ export class DragZoomWrapper extends Component {
     this.#lastTapPosition = null;
     this.#hasDraggedBeyondThreshold = false;
 
-    // Update CSS properties to reflect reset state
     this.style.setProperty('--drag-zoom-scale', DEFAULT_ZOOM.toString());
     this.style.setProperty('--drag-zoom-translate-x', '0px');
     this.style.setProperty('--drag-zoom-translate-y', '0px');
@@ -476,18 +449,11 @@ export class DragZoomWrapper extends Component {
   }
 }
 
-/**
- * Calculate distance between two points or touches
- * @param {Point | Touch} point1 - First point or touch
- * @param {Point | Touch} point2 - Second point or touch
- * @returns {number} Distance between the points
- */
 function getDistance(point1, point2) {
-  // Handle both Point objects (x, y) and Touch objects (clientX, clientY)
-  const x1 = /** @type {Point} */ (point1).x ?? /** @type {Touch} */ (point1).clientX;
-  const y1 = /** @type {Point} */ (point1).y ?? /** @type {Touch} */ (point1).clientY;
-  const x2 = /** @type {Point} */ (point2).x ?? /** @type {Touch} */ (point2).clientX;
-  const y2 = /** @type {Point} */ (point2).y ?? /** @type {Touch} */ (point2).clientY;
+  const x1 = point1.x ?? point1.clientX;
+  const y1 = point1.y ?? point1.clientY;
+  const x2 = point2.x ?? point2.clientX;
+  const y2 = point2.y ?? point2.clientY;
 
   const dx = x1 - x2;
   const dy = y1 - y2;
@@ -497,14 +463,3 @@ function getDistance(point1, point2) {
 if (!customElements.get('drag-zoom-wrapper')) {
   customElements.define('drag-zoom-wrapper', DragZoomWrapper);
 }
-
-/**
- * @typedef {Object} Point
- * @property {number} x
- * @property {number} y
- */
-
-/**
- * @typedef {HTMLElement} ZoomDialogElement
- * @property {Function} close - Method to close the zoom dialog
- */
