@@ -1,0 +1,376 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin theme editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */{
+  "sections": {
+    "hero": {
+      "type": "hero",
+      "blocks": {
+        "tag": {
+          "type": "text",
+          "settings": {
+            "text": "<p>RESÈT.</p>",
+            "width": "fit-content",
+            "max_width": "narrow",
+            "alignment": "center",
+            "type_preset": "h6",
+            "wrap": "pretty"
+          },
+          "blocks": {},
+          "name": "Caption"
+        },
+        "heading": {
+          "type": "text",
+          "settings": {
+            "text": "<h1>Come back to yourself.</h1>",
+            "width": "fit-content",
+            "max_width": "medium",
+            "alignment": "center",
+            "type_preset": "h1",
+            "wrap": "pretty"
+          },
+          "blocks": {},
+          "name": "Heading"
+        },
+        "sub": {
+          "type": "text",
+          "settings": {
+            "text": "<p>Body care as inner alchemy — soft, deliberate, and yours.</p>",
+            "width": "fit-content",
+            "max_width": "narrow",
+            "alignment": "center",
+            "type_preset": "rte",
+            "wrap": "pretty"
+          },
+          "blocks": {},
+          "name": "Text"
+        }
+      },
+      "block_order": [
+        "tag",
+        "heading",
+        "sub"
+      ],
+      "name": "Hero",
+      "settings": {
+        "media_type_1": "image",
+        "media_type_2": "image",
+        "stack_media_on_mobile": false,
+        "custom_mobile_media": false,
+        "media_type_1_mobile": "image",
+        "media_type_2_mobile": "image",
+        "content_direction": "column",
+        "vertical_on_mobile": true,
+        "horizontal_alignment": "center",
+        "vertical_alignment": "center",
+        "align_baseline": false,
+        "horizontal_alignment_flex_direction_column": "center",
+        "vertical_alignment_flex_direction_column": "center",
+        "gap": 20,
+        "section_width": "full-width",
+        "section_height": "large",
+        "section_height_custom": 60,
+        "color_scheme": "scheme-1",
+        "toggle_overlay": false,
+        "overlay_color": "#00000000",
+        "overlay_style": "solid",
+        "gradient_direction": "to top",
+        "padding-block-start": 100,
+        "padding-block-end": 100
+      }
+    },
+    "mythology": {
+      "type": "section",
+      "name": "Inner alchemy",
+      "blocks": {
+        "tag": {
+          "type": "text",
+          "settings": {
+            "text": "<p>Our mythology</p>",
+            "width": "fit-content",
+            "max_width": "narrow",
+            "alignment": "center",
+            "type_preset": "h6",
+            "wrap": "pretty"
+          },
+          "blocks": {},
+          "name": "Caption"
+        },
+        "heading": {
+          "type": "text",
+          "settings": {
+            "text": "<h2>Inner alchemy</h2>",
+            "width": "fit-content",
+            "max_width": "narrow",
+            "alignment": "center",
+            "type_preset": "h2",
+            "wrap": "pretty"
+          },
+          "blocks": {},
+          "name": "Heading"
+        },
+        "body": {
+          "type": "text",
+          "settings": {
+            "text": "<p>RESÈT is built on a single belief: caring for your body transforms your inner world. Every product is a quiet tool for personal transmutation — turning stress into softness, tension into clarity, exhaustion into power.</p>",
+            "width": "fit-content",
+            "max_width": "narrow",
+            "alignment": "center",
+            "type_preset": "rte",
+            "wrap": "pretty"
+          },
+          "blocks": {},
+          "name": "Text"
+        }
+      },
+      "block_order": [
+        "tag",
+        "heading",
+        "body"
+      ],
+      "settings": {
+        "content_direction": "column",
+        "vertical_on_mobile": true,
+        "horizontal_alignment": "center",
+        "vertical_alignment": "center",
+        "align_baseline": false,
+        "horizontal_alignment_flex_direction_column": "center",
+        "vertical_alignment_flex_direction_column": "center",
+        "gap": 24,
+        "section_width": "page-width",
+        "section_height": "small",
+        "color_scheme": "scheme-1",
+        "background_media": "none",
+        "border": "none",
+        "padding-block-start": 88,
+        "padding-block-end": 88
+      }
+    },
+    "principles": {
+      "type": "section",
+      "name": "Universe principles",
+      "blocks": {
+        "heading": {
+          "type": "text",
+          "settings": {
+            "text": "<h2>The universe principles</h2>",
+            "width": "fit-content",
+            "max_width": "narrow",
+            "alignment": "center",
+            "type_preset": "h2",
+            "wrap": "pretty"
+          },
+          "blocks": {},
+          "name": "Heading"
+        },
+        "p1": {
+          "type": "text",
+          "settings": {
+            "text": "<p><strong>Everything returns to stillness first.</strong> Cleansing, clearing, grounding.</p>",
+            "width": "fit-content",
+            "max_width": "narrow",
+            "alignment": "center",
+            "type_preset": "rte",
+            "wrap": "pretty"
+          },
+          "blocks": {},
+          "name": "P1"
+        },
+        "p2": {
+          "type": "text",
+          "settings": {
+            "text": "<p><strong>Softness is strength.</strong> Gentleness as power.</p>",
+            "width": "fit-content",
+            "max_width": "narrow",
+            "alignment": "center",
+            "type_preset": "rte",
+            "wrap": "pretty"
+          },
+          "blocks": {},
+          "name": "P2"
+        },
+        "p3": {
+          "type": "text",
+          "settings": {
+            "text": "<p><strong>Your body holds your story.</strong> And you rewrite it through ritual.</p>",
+            "width": "fit-content",
+            "max_width": "narrow",
+            "alignment": "center",
+            "type_preset": "rte",
+            "wrap": "pretty"
+          },
+          "blocks": {},
+          "name": "P3"
+        },
+        "p4": {
+          "type": "text",
+          "settings": {
+            "text": "<p><strong>Transformation happens daily.</strong> Not once in a lifetime.</p>",
+            "width": "fit-content",
+            "max_width": "narrow",
+            "alignment": "center",
+            "type_preset": "rte",
+            "wrap": "pretty"
+          },
+          "blocks": {},
+          "name": "P4"
+        }
+      },
+      "block_order": [
+        "heading",
+        "p1",
+        "p2",
+        "p3",
+        "p4"
+      ],
+      "settings": {
+        "content_direction": "column",
+        "vertical_on_mobile": true,
+        "horizontal_alignment": "center",
+        "vertical_alignment": "center",
+        "align_baseline": false,
+        "horizontal_alignment_flex_direction_column": "center",
+        "vertical_alignment_flex_direction_column": "center",
+        "gap": 24,
+        "section_width": "page-width",
+        "section_height": "small",
+        "color_scheme": "scheme-3",
+        "background_media": "none",
+        "border": "none",
+        "padding-block-start": 96,
+        "padding-block-end": 96
+      }
+    },
+    "values": {
+      "type": "section",
+      "name": "What we stand for",
+      "blocks": {
+        "heading": {
+          "type": "text",
+          "settings": {
+            "text": "<h2>What we stand for</h2>",
+            "width": "fit-content",
+            "max_width": "narrow",
+            "alignment": "center",
+            "type_preset": "h2",
+            "wrap": "pretty"
+          },
+          "blocks": {},
+          "name": "Heading"
+        },
+        "body": {
+          "type": "text",
+          "settings": {
+            "text": "<p>Plant-based &amp; vegan&nbsp;·&nbsp;Cruelty-free&nbsp;·&nbsp;Made in small batches&nbsp;·&nbsp;Carbon-neutral shipping&nbsp;·&nbsp;Recyclable packaging</p>",
+            "width": "fit-content",
+            "max_width": "wide",
+            "alignment": "center",
+            "type_preset": "rte",
+            "wrap": "pretty"
+          },
+          "blocks": {},
+          "name": "Text"
+        }
+      },
+      "block_order": [
+        "heading",
+        "body"
+      ],
+      "settings": {
+        "content_direction": "column",
+        "vertical_on_mobile": true,
+        "horizontal_alignment": "center",
+        "vertical_alignment": "center",
+        "align_baseline": false,
+        "horizontal_alignment_flex_direction_column": "center",
+        "vertical_alignment_flex_direction_column": "center",
+        "gap": 24,
+        "section_width": "page-width",
+        "section_height": "small",
+        "color_scheme": "scheme-2",
+        "background_media": "none",
+        "border": "none",
+        "padding-block-start": 80,
+        "padding-block-end": 80
+      }
+    },
+    "closing": {
+      "type": "section",
+      "name": "Closing CTA",
+      "blocks": {
+        "heading": {
+          "type": "text",
+          "settings": {
+            "text": "<h2>Begin the ritual</h2>",
+            "width": "fit-content",
+            "max_width": "narrow",
+            "alignment": "center",
+            "type_preset": "h2",
+            "wrap": "pretty"
+          },
+          "blocks": {},
+          "name": "Heading"
+        },
+        "sub": {
+          "type": "text",
+          "settings": {
+            "text": "<p>The collection is short on purpose. Each piece is built for the moment you return to yourself.</p>",
+            "width": "fit-content",
+            "max_width": "narrow",
+            "alignment": "center",
+            "type_preset": "rte",
+            "wrap": "pretty"
+          },
+          "blocks": {},
+          "name": "Text"
+        },
+        "button": {
+          "type": "button",
+          "name": "Button",
+          "settings": {
+            "label": "Shop the ritual",
+            "link": "shopify://collections/all",
+            "open_in_new_tab": false,
+            "style_class": "button",
+            "width": "fit-content"
+          },
+          "blocks": {}
+        }
+      },
+      "block_order": [
+        "heading",
+        "sub",
+        "button"
+      ],
+      "settings": {
+        "content_direction": "column",
+        "vertical_on_mobile": true,
+        "horizontal_alignment": "center",
+        "vertical_alignment": "center",
+        "align_baseline": false,
+        "horizontal_alignment_flex_direction_column": "center",
+        "vertical_alignment_flex_direction_column": "center",
+        "gap": 24,
+        "section_width": "page-width",
+        "section_height": "medium",
+        "color_scheme": "scheme-5",
+        "background_media": "none",
+        "border": "none",
+        "padding-block-start": 96,
+        "padding-block-end": 96
+      }
+    }
+  },
+  "order": [
+    "hero",
+    "mythology",
+    "principles",
+    "values",
+    "closing"
+  ]
+}
